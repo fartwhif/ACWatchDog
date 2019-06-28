@@ -9,6 +9,7 @@ namespace ACWatchDog
 {
     class Program
     {
+        private static Stopwatch LatestTrigger = Stopwatch.StartNew();
         private static readonly Dictionary<int, Hyper> Pool = new Dictionary<int, Hyper>();
         static void Main(string[] args)
         {
@@ -59,37 +60,45 @@ namespace ACWatchDog
 
         private static void CheckPool()
         {
+            if (LatestTrigger.Elapsed.TotalSeconds < 30)
+            {
+                return;
+            }
             List<KeyValuePair<int, Hyper>> delinquents = Pool.Where(
                 k => k.Value.Register.Trigger == AppMessage.TriggerType.Canary &&
                 k.Value.TimeSinceRcvd.Elapsed.TotalSeconds > 5 &&
                 k.Value.TimeSinceTriggered == null || (k.Value.TimeSinceTriggered?.Elapsed.TotalSeconds ?? 0) > 5).ToList();
-            foreach (KeyValuePair<int, Hyper> hyper in delinquents)
+            if (!delinquents.Any())
             {
-                Pool.Remove(hyper.Value.Register.ProcessId);
-                hyper.Value.TimeSinceTriggered = Stopwatch.StartNew();
-
-                AppMessage register = hyper.Value.Register;
-                ProcessStartInfo psi = new ProcessStartInfo();
-
-                KillProcById(register.ProcessId);
-
-                string exePath = register.ExePath;
-                string cmdLin = register.CmdLine;
-                if (cmdLin.StartsWith($"\"{exePath}\""))
-                {
-                    cmdLin = cmdLin.Substring(exePath.Length + 2).Trim();
-                }
-
-                psi.FileName = exePath;
-                psi.Arguments = cmdLin;
-
-                Process newProc = Process.Start(psi);
-                var oldPid = register.ProcessId;
-                register.ProcessId = newProc.Id;
-                Pool[newProc.Id] = hyper.Value;
-
-                Log($"Restarted App: PID: {oldPid} => {register.ProcessId} Name: {register.AppName}");
+                return;
             }
+
+            KeyValuePair<int, Hyper> hyper = delinquents.First();
+            Pool.Remove(hyper.Value.Register.ProcessId);
+            hyper.Value.TimeSinceTriggered = Stopwatch.StartNew();
+            LatestTrigger = Stopwatch.StartNew();
+
+            AppMessage register = hyper.Value.Register;
+            ProcessStartInfo psi = new ProcessStartInfo();
+
+            KillProcById(register.ProcessId);
+
+            string exePath = register.ExePath;
+            string cmdLin = register.CmdLine;
+            if (cmdLin.StartsWith($"\"{exePath}\""))
+            {
+                cmdLin = cmdLin.Substring(exePath.Length + 2).Trim();
+            }
+
+            psi.FileName = exePath;
+            psi.Arguments = cmdLin;
+
+            Process newProc = Process.Start(psi);
+            int oldPid = register.ProcessId;
+            register.ProcessId = newProc.Id;
+            Pool[newProc.Id] = hyper.Value;
+
+            Log($"Restarted App: PID: {oldPid} => {register.ProcessId} Name: {register.AppName}");
         }
     }
 }
