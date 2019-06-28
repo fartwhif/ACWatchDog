@@ -10,7 +10,9 @@ namespace ACWatchDog.TestClient
         {
             while (true)
             {
-                AppMessage msg = Client.Send(AppMessage.New());
+                var msg = AppMessage.New();
+                msg.DelinquencyTime = 5;//5 seconds
+                AppMessage msg2 = Client.Send(msg);
                 Console.WriteLine("from server: pool size: " + msg?.PoolSize.ToString());
                 Thread.Sleep(1000);
             }

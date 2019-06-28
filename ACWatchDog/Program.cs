@@ -1,14 +1,15 @@
+using System.Linq;
 using ACWatchDog.Interop;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using System.Threading;
 
 namespace ACWatchDog
 {
     class Program
     {
+        private const int delinquencyTime = 300; // 5 mins
         private static Stopwatch LatestTrigger = Stopwatch.StartNew();
         private static readonly Dictionary<int, Hyper> Pool = new Dictionary<int, Hyper>();
         static void Main(string[] args)
@@ -66,8 +67,8 @@ namespace ACWatchDog
             }
             List<KeyValuePair<int, Hyper>> delinquents = Pool.Where(
                 k => k.Value.Register.Trigger == AppMessage.TriggerType.Canary &&
-                k.Value.TimeSinceRcvd.Elapsed.TotalSeconds > 5 &&
-                k.Value.TimeSinceTriggered == null || (k.Value.TimeSinceTriggered?.Elapsed.TotalSeconds ?? 0) > 5).ToList();
+                k.Value.TimeSinceRcvd.Elapsed.TotalSeconds > k.Value.Register.DelinquencyTime &&
+                k.Value.TimeSinceTriggered == null || (k.Value.TimeSinceTriggered?.Elapsed.TotalSeconds ?? 0) > k.Value.Register.DelinquencyTime).ToList();
             if (!delinquents.Any())
             {
                 return;

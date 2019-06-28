@@ -19,7 +19,8 @@ namespace ACWatchDog.Interop
         public string AppName { get; set; } //C2S
         public int ProcessId { get; set; } //C2S
         public int PoolSize { get; set; } //S2C
-        public TriggerType Trigger { get; set; } //S2C
+        public int DelinquencyTime { get; set; } = 300; //C2S
+        public TriggerType Trigger { get; set; } //C2S
         public static AppMessage FromBytes(byte[] input)
         {
             string inputStr = Encoding.UTF8.GetString(input);
