@@ -6,10 +6,10 @@ namespace ACWatchDog.Interop
     {
         private InteropGlobals() { }
         public static InteropGlobals Instance => Nested.instance;
-        public static Queue<AppMessage> Barking { get => Nested.instance.barking; set => Nested.instance.barking = value; }
-        public static object BarkLocker => Nested.instance.barkLocker;
-        private Queue<AppMessage> barking = new Queue<AppMessage>();
-        private object barkLocker = new object();
+        public static Queue<AppMessage> Queue { get => Nested.instance.queue; set => Nested.instance.queue = value; }
+        public static object QueueLocker => Nested.instance.queueLocker;
+        private Queue<AppMessage> queue = new Queue<AppMessage>();
+        private object queueLocker = new object();
         private class Nested
         {
             // Explicit static constructor to tell C# compiler

@@ -10,8 +10,8 @@ namespace ACWatchDog.TestClient
         {
             while (true)
             {
-                AppMessage bark = Client.Send(AppMessage.New());
-                Console.WriteLine("from server: pool size: " + bark?.PoolSize.ToString());
+                AppMessage msg = Client.Send(AppMessage.New());
+                Console.WriteLine("from server: pool size: " + msg?.PoolSize.ToString());
                 Thread.Sleep(1000);
             }
         }

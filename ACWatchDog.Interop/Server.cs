@@ -42,9 +42,9 @@ namespace ACWatchDog.Interop
         }
         private byte[] Server_OnExecute(IRpcClientInfo client, byte[] input)
         {
-            lock (InteropGlobals.BarkLocker)
+            lock (InteropGlobals.QueueLocker)
             {
-                InteropGlobals.Barking.Enqueue(AppMessage.FromBytes(input));
+                InteropGlobals.Queue.Enqueue(AppMessage.FromBytes(input));
             }
             return new AppMessage() { PoolSize = PoolSize }.ToBytes();
         }

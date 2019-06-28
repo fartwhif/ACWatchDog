@@ -9,13 +9,7 @@ namespace ACWatchDog
 {
     class Program
     {
-        private class Leash
-        {
-            public AppMessage Bark { get; set; }
-            public Stopwatch TimeSinceBark { get; set; }
-            public Stopwatch TimeSinceTriggered { get; set; }
-        }
-        private static readonly Dictionary<int, Leash> Pool = new Dictionary<int, Leash>();
+        private static readonly Dictionary<int, Hyper> Pool = new Dictionary<int, Hyper>();
         static void Main(string[] args)
         {
             Server server = new Server();
@@ -23,17 +17,26 @@ namespace ACWatchDog
             while (true)
             {
                 Thread.Sleep(1000);
-                lock (InteropGlobals.BarkLocker)
+                lock (InteropGlobals.QueueLocker)
                 {
-                    while (InteropGlobals.Barking.Count > 0)
+                    while (InteropGlobals.Queue.Count > 0)
                     {
-                        AppMessage bark = InteropGlobals.Barking.Dequeue();
-                        Pool[bark.ProcessId] = new Leash() { Bark = bark, TimeSinceBark = Stopwatch.StartNew() };
+                        AppMessage msg = InteropGlobals.Queue.Dequeue();
+                        if (!Pool.Keys.Contains(msg.ProcessId))
+                        {
+                            Log($"Registered App: PID: {msg.ProcessId} Name: {msg.AppName}");
+                        }
+                        Pool[msg.ProcessId] = new Hyper() { Register = msg, TimeSinceRcvd = Stopwatch.StartNew() };
                         server.PoolSize = Pool.Count;
                     }
                 }
                 CheckPool();
             }
+        }
+
+        private static void Log(string what)
+        {
+            Console.WriteLine($"[{DateTime.Now.ToString()}] " + what);
         }
 
         private static bool KillProcById(int id)
@@ -56,22 +59,22 @@ namespace ACWatchDog
 
         private static void CheckPool()
         {
-            List<KeyValuePair<int, Leash>> delinquents = Pool.Where(
-                k => k.Value.Bark.Trigger == AppMessage.TriggerType.Canary &&
-                k.Value.TimeSinceBark.Elapsed.TotalSeconds > 5 &&
+            List<KeyValuePair<int, Hyper>> delinquents = Pool.Where(
+                k => k.Value.Register.Trigger == AppMessage.TriggerType.Canary &&
+                k.Value.TimeSinceRcvd.Elapsed.TotalSeconds > 5 &&
                 k.Value.TimeSinceTriggered == null || (k.Value.TimeSinceTriggered?.Elapsed.TotalSeconds ?? 0) > 5).ToList();
-            foreach (KeyValuePair<int, Leash> leash in delinquents)
+            foreach (KeyValuePair<int, Hyper> hyper in delinquents)
             {
-                Pool.Remove(leash.Value.Bark.ProcessId);
-                leash.Value.TimeSinceTriggered = Stopwatch.StartNew();
+                Pool.Remove(hyper.Value.Register.ProcessId);
+                hyper.Value.TimeSinceTriggered = Stopwatch.StartNew();
 
-                AppMessage bark = leash.Value.Bark;
+                AppMessage register = hyper.Value.Register;
                 ProcessStartInfo psi = new ProcessStartInfo();
 
-                KillProcById(bark.ProcessId);
+                KillProcById(register.ProcessId);
 
-                string exePath = bark.ExePath;
-                string cmdLin = bark.CmdLine;
+                string exePath = register.ExePath;
+                string cmdLin = register.CmdLine;
                 if (cmdLin.StartsWith($"\"{exePath}\""))
                 {
                     cmdLin = cmdLin.Substring(exePath.Length + 2).Trim();
@@ -81,8 +84,11 @@ namespace ACWatchDog
                 psi.Arguments = cmdLin;
 
                 Process newProc = Process.Start(psi);
-                bark.ProcessId = newProc.Id;
-                Pool[newProc.Id] = leash.Value;
+                var oldPid = register.ProcessId;
+                register.ProcessId = newProc.Id;
+                Pool[newProc.Id] = hyper.Value;
+
+                Log($"Restarted App: PID: {oldPid} => {register.ProcessId} Name: {register.AppName}");
             }
         }
     }
