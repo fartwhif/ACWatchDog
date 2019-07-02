@@ -14,15 +14,15 @@
 
 
 ## Message members
-* string AppName C2S, the name to use with the console display, aesthetic only
-* int DelinquencyTime C2S, the amount of time (in seconds) since the last message before a failure is triggered
-* bool DecalInject: C2S, whether or not to inject decal upon start/restart
-  * registration fails if decal's Inject.dll file can't be found 
-* string CmdLine C2S, command line to use, *automatically detected* upon message creation
-* string ExePath C2S, path to the executable *automatically detected* upon message creation
-* int ProcessId C2S, the current PID, *automatically detected* upon message creation
-* TriggerType Trigger C2S, only canary for now, *automatically assigned* upon message creation
-* int PoolSize S2C, returned count of the current collection of registered application instances
+* `string` `AppName` `C2S`, the name to use with the console display, aesthetic only
+* `int` `DelinquencyTime` `C2S`, the amount of time (in seconds) since the last message before a failure is triggered
+* `bool` `DecalInject` `C2S`, whether or not to inject decal upon start/restart
+  * registration fail if decal's `Inject.dll` file can't be found 
+* `string` `CmdLine` `C2S`, command line to use, *automatically detected* upon message creation
+* `string` `ExePath` `C2S`, path to the executable *automatically detected* upon message creation
+* `int` `ProcessId` `C2S`, the current `PID`, *automatically detected* upon message creation
+* `TriggerType` `Trigger` `C2S`, only `canary` for now, *automatically assigned* upon message creation
+* `int` `PoolSize` `S2C`, returned count of the current collection of registered application instances
 
 ## Auto message construction
 ```CSharp
