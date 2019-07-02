@@ -1,7 +1,6 @@
 ﻿using Newtonsoft.Json;
 using System;
 using System.Diagnostics;
-using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -11,9 +10,10 @@ namespace ACWatchDog.Interop
     {
         public enum TriggerType
         {
-            Canary //time since bark > X
+            Canary // if time since msg > X then trigger
         }
         public AppMessage() { }
+        public bool DecalInject { get; set; } //C2S
         public string CmdLine { get; set; } //C2S
         public string ExePath { get; set; } //C2S
         public string AppName { get; set; } //C2S
@@ -24,8 +24,8 @@ namespace ACWatchDog.Interop
         public static AppMessage FromBytes(byte[] input)
         {
             string inputStr = Encoding.UTF8.GetString(input);
-            AppMessage bark = JsonConvert.DeserializeObject<AppMessage>(inputStr);
-            return bark;
+            AppMessage msg = JsonConvert.DeserializeObject<AppMessage>(inputStr);
+            return msg;
         }
         public byte[] ToBytes()
         {
@@ -33,16 +33,17 @@ namespace ACWatchDog.Interop
             byte[] bMsg = Encoding.UTF8.GetBytes(sMsg);
             return bMsg;
         }
-        public static AppMessage New()
+        public static AppMessage New(string appName, int delinquencyTime, bool DecalInject)
         {
-            Assembly appProc = Assembly.GetEntryAssembly();
             using (Process proc = Process.GetCurrentProcess())
             {
                 return new AppMessage()
                 {
-                    ProcessId = Process.GetCurrentProcess().Id,
-                    AppName = "TestClient",
-                    ExePath = appProc.CodeBase.Substring(8).Replace('/', '\\'),
+                    DecalInject = DecalInject,
+                    ProcessId = proc.Id,
+                    AppName = appName,
+                    DelinquencyTime = delinquencyTime,
+                    ExePath = proc.MainModule.FileName,
                     CmdLine = GetCommandLineOfProcess(proc)
                 };
             }
