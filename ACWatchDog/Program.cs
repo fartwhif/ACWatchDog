@@ -101,13 +101,7 @@ namespace ACWatchDog
             AppMessage register = hyper.Value.Register;
             KillProcById(register.ProcessId);
             Thread.Sleep(5000);
-            string exePath = register.ExePath;
-            string cmdLin = register.CmdLine;
-            if (cmdLin.StartsWith($"\"{exePath}\""))
-            {
-                cmdLin = cmdLin.Substring(exePath.Length + 2).Trim();
-            }
-            int newPid = StartProc(exePath, cmdLin, register.DecalInject);
+            int newPid = StartProc(register);
             if (newPid > 0)
             {
                 int oldPid = register.ProcessId;
@@ -117,9 +111,19 @@ namespace ACWatchDog
                 hyper.Value.TimeSinceTriggered = Stopwatch.StartNew();
             }
         }
-        private static int StartProc(string exe, string cmdLin, bool decalInject)
+        private static int StartProc(AppMessage register)
         {
-            if (decalInject)
+            string cmdLin = register.CmdLine;
+            if (cmdLin.ToLower().Trim().StartsWith($"\"{register.ExePath.ToLower().Trim()}\""))
+            {
+                cmdLin = cmdLin.Trim().Substring(register.ExePath.Trim().Length + 2).Trim();
+            }
+            else if (cmdLin.ToLower().Trim().StartsWith($"{register.ExePath.ToLower().Trim()}"))
+            {
+                cmdLin = cmdLin.Trim().Substring(register.ExePath.Trim().Length).Trim();
+            }
+
+            if (register.DecalInject)
             {
                 string injectDll = InjectDllPath;
                 if (string.IsNullOrEmpty(injectDll))
@@ -129,7 +133,7 @@ namespace ACWatchDog
                 else
                 {
                     int pid = -1;
-                    if (Injector.RunSuspendedCommaInjectCommaAndResume(exe, cmdLin, out pid, injectDll, "DecalStartup"))
+                    if (Injector.RunSuspendedCommaInjectCommaAndResume(register.ExePath, cmdLin, out pid, injectDll, "DecalStartup"))
                     {
                         return pid;
                     }
@@ -143,9 +147,9 @@ namespace ACWatchDog
             {
                 ProcessStartInfo psi = new ProcessStartInfo
                 {
-                    FileName = exe,
+                    FileName = register.ExePath,
                     Arguments = cmdLin,
-                    WorkingDirectory = Path.GetDirectoryName(exe)
+                    WorkingDirectory = Path.GetDirectoryName(register.ExePath)
                 };
                 Process newProc = Process.Start(psi);
                 return newProc.Id;
