@@ -36,6 +36,11 @@ namespace ACWatchDog
                         }
                         if (register.Value == null)
                         {
+                            var prev = Pool.FirstOrDefault(k => k.Value.Register.AppName == msg.AppName);
+                            if (prev.Key > 0)
+                            {
+                                Pool.Remove(prev.Key);
+                            }
                             Pool[msg.ProcessId] = new Hyper() { Register = msg, TimeSinceRcvd = Stopwatch.StartNew(), TimeSinceRegistered = Stopwatch.StartNew() };
                         }
                         else
